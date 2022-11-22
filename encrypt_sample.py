@@ -13,6 +13,5 @@ if __name__ == '__main__':
         filename = os.path.join(sample_dir, f)
 
         img = dataloader.getimg(filename)
-        encry
-
+        
     print('hello world')

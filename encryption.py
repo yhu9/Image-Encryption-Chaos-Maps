@@ -39,7 +39,6 @@ class RSAimg():
         h, w, d = img.shape
         byte_img = img.tobytes()
 
-
         if mode == 'private':
             ciphertext = []
             for i in range(int(math.ceil(len(byte_img)) / self.msglen)):
@@ -101,51 +100,22 @@ class DESimg():
             self.cipher = DES.new(key,DES.MODE_CBC,self.iv)
         elif mode == 'ecb':
             self.cipher = DES.new(key,DES.MODE_ECB)
+        else:
+            print("ERROR with creating DES encryption")
 
-        
-    # encrypt using des algorithm
-    #
-    #INPUT:
-    # img           [h,w,3]         numpy array as image
-    #OUTPUT:
-    # cimg          [h+1,w,3]       cipher image
-    def encrypt(self,img):
-        h,w,d = img.shape
-        byte_img = img.tobytes()
+    # given some data of any size, encrypt it using key
+    def encrypt(self,data):
+        bdata = data.tobytes()
+        cdata = self.cipher.encrypt(bdata)
+        cimg = np.frombuffer(cdata,dtype=data.dtype)
+        return cimg
 
-        ivsize = len(self.iv) if self.mode == 'cbc' else 0
-
-        pad_byte_img = pad(byte_img, DES.block_size)
-        ciphertext = self.cipher.encrypt(pad_byte_img)
-
-        pad_size = len(pad_byte_img) - len(byte_img)
-        void = w * d - ivsize - pad_size
-        iv_ciphertext_void = self.iv + ciphertext + bytes(void)
-        cipher_image = np.frombuffer(iv_ciphertext_void,dtype=img.dtype).reshape(h+1,w,d)
-
-        return cipher_image
-
-    # DES decryption using a key
-    #INPUT
-    # cipher_img        [h+1, w, 3]     encrypted image using aes
-    #OUTPUT
-    # decrypt_img       [h,w,3]         decrypted image using the key and aes mode
-    def decrypt(self,cipher_img):
-        h,w,d = cipher_img.shape
-        ivsize = len(self.iv)
-        
-        cipher_text = cipher_img.tobytes()
-        img_byte_size = (h-1) * w * d
-        pad_size = (img_byte_size // DES.block_size + 1) * DES.block_size - img_byte_size
-        encrypted = cipher_text[ivsize : ivsize + img_byte_size + pad_size]
-
+    # given some data of any size, decrypt it using key
+    def decrypt(self,cdata):
         cipher = DES.new(self.key, DES.MODE_CBC) if self.mode == 'cbc' else DES.new(self.key,DES.MODE_ECB)
-        decrypt_msg_padded = cipher.decrypt(encrypted)
-        decrypt_msg = unpad(decrypt_msg_padded, DES.block_size)
-
-        decrypted_image = np.frombuffer(decrypt_msg, cipher_img.dtype).reshape(h-1,w,d)
-
-        return decrypted_image
+        pdata = cipher.decrypt(cdata.tobytes())
+        return np.frombuffer(pdata, dtype=np.uint8)
+        
 
 # AES Encryption on images using Crypto module
 # ecb: electronic codebook. Most basic form
@@ -157,6 +127,8 @@ class AESimg():
         self.mode = mode
         self.key = key
         self.iv = get_random_bytes(32) if mode == 'cbc' else get_random_bytes(0)
+
+        # key must be 32 bytes long
         if mode == 'cbc':
             self.cipher = AES.new(key,AES.MODE_CBC,self.iv)
         elif mode == 'ecb':
@@ -167,52 +139,22 @@ class AESimg():
     #INPUT:
     # img           [h,w,3]         numpy array as image
     #OUTPUT:
-    # cimg          [h+1,w,3]       cipher image
-    def encrypt(self, img):
-        h,w,d = img.shape
-        byte_img = img.tobytes()
-        
-        ivsize = len(self.iv) if self.mode == 'cbc' else 0
-
-        pad_byte_img = pad(byte_img, AES.block_size)
-        ciphertext =  self.cipher.encrypt(pad_byte_img)
-
-        # Convert ciphertext bytes to encrypted image data
-        # The additional row contains columnOrig * DepthOrig bytes. Of this, ivSize + paddedSize bytes are used 
-        # and void = columnOrig * DepthOrig - ivSize - paddedSize bytes unused
-        pad_size = len(pad_byte_img) - len(byte_img)
-        void = w * d - ivsize - pad_size
-        iv_ciphertext_void = self.iv + ciphertext + bytes(void)
-        cipher_image = np.frombuffer(iv_ciphertext_void, dtype=img.dtype).reshape(h+1, w, d)
-
-        return cipher_image
+    # cimg          [h*w*3]       cipher image
+    def encrypt(self, data):
+        bdata = data.tobytes()
+        cdata = self.cipher.encrypt(bdata)
+        cimg = np.frombuffer(cdata,dtype=data.dtype)
+        return cimg
 
     # aes decryption using a key
     #INPUT
-    # cipher_img        [h+1, w, 3]     encrypted image using aes
+    # cipher_img        [h*w*3]     encrypted image using aes
     #OUTPUT
-    # decrypt_img       [h,w,3]         decrypted image using the key and aes mode
-    def decrypt(self,cipher_img):
-        h,w,d = cipher_img.shape
-        ivsize = len(self.iv)
-        # ivsize = len(key) if mode == 'cbc' else 0
-
-        # get padding size for decryption
-        cipher_text = cipher_img.tobytes()
-        # iv = cipher_text[:ivsize]
-        img_byte_size = (h-1) * w * d
-        pad_size = (img_byte_size // AES.block_size + 1) * AES.block_size - img_byte_size
-        encrypted = cipher_text[ivsize : ivsize + img_byte_size + pad_size]
-
+    # decrypt_img       [h*w*3]         decrypted image using the key and aes mode
+    def decrypt(self,cdata):
         cipher = AES.new(self.key, AES.MODE_CBC) if self.mode == 'cbc' else AES.new(self.key, AES.MODE_ECB)
-        decrypt_msg_padded = cipher.decrypt(encrypted)
-        decrypt_msg = unpad(decrypt_msg_padded, AES.block_size)
-
-        # convert bytes to decrypted image data
-        decrypted_image = np.frombuffer(decrypt_msg, cipher_img.dtype).reshape(h-1, w, d)
-
-        return decrypted_image
-
+        pdata = cipher.decrypt(cdata.tobytes())
+        return np.frombuffer(pdata,dtype=np.uint8)
 
 ##########################################################################################
 

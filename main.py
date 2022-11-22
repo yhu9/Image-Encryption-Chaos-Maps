@@ -7,6 +7,7 @@ from Crypto.Random import get_random_bytes
 
 import encryption
 import util
+import task
 
 if __name__ == '__main__':
 
@@ -17,16 +18,15 @@ if __name__ == '__main__':
         filepath = os.path.join(sampleimg_dir, f)
         img = plt.imread(filepath)
     
-        loc = (200,200)
-        size= 720
-        key = get_random_bytes(8)
-        mode = 'ecb'
-        aes_cipher = encryption.DESimg(key,mode=mode)
+        # generate mask according to mask generation rule
+        mask = np.logical_not(task.center_mask(img)[...,0].astype(bool))
 
-        eimg = util.encrypt_image(img, aes_cipher, loc, size)
+        # ru
 
-        # plt.imshow(eimg)
-        # plt.show()
+
+        # generate key
+        plt.imshow(eimg)
+        plt.show()
 
 
         outpath = os.path.join(sampleout_dir, f)
