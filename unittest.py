@@ -72,7 +72,7 @@ def test_aes_mask():
     f0 = os.path.join('sample/original.png')
     f1 = os.path.join('sample/aes_encrypt_m1.png')
     f2 = os.path.join('sample/aes_decrypt_m1.png')
-    showimgs([img,cimg, dimg],show=False, save=True, imgnames=[f0,f1,f2])
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
 
     
     cdata = AES.encrypt(img[m2])
@@ -84,7 +84,7 @@ def test_aes_mask():
     f0 = os.path.join('sample/original.png')
     f1 = os.path.join('sample/aes_encrypt_m2.png')
     f2 = os.path.join('sample/aes_decrypt_m2.png')
-    showimgs([img,cimg, dimg],show=False, save=True, imgnames=[f0,f1,f2])
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
     
     cdata = AES.encrypt(img[m3])
     ddata = AES.decrypt(cdata)
@@ -95,9 +95,7 @@ def test_aes_mask():
     f0 = os.path.join('sample/original.png')
     f1 = os.path.join('sample/aes_encrypt_m3.png')
     f2 = os.path.join('sample/aes_decrypt_m3.png')
-    showimgs([img,cimg, dimg],show=False, save=True, imgnames=[f0,f1,f2])
-
-
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
 
 def showimgs(imgs, show=True, save=False, imgnames=[]):
     for i in range(len(imgs)):
