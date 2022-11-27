@@ -34,8 +34,9 @@ def encrypt_image(img,cipher,loc=(0,0),size=128):
 def fix_mask(mask, blocksize):
 
     n = np.lcm(blocksize, 24)
-    if np.sum(mask) % n != 0:
-        k = np.sum(mask) % n
+    sum = np.sum(mask)
+    if sum % n != 0:
+        k = sum % n
         ones = mask[mask]
 
         ones[-k:] = False

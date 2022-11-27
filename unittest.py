@@ -106,6 +106,147 @@ def showimgs(imgs, show=True, save=False, imgnames=[]):
             fname = imgnames[i]
             plt.imsave(fname, img)
 
+#run arnold on all masks
+def test_arnold_mask():
+    # img = dataloader.getimg('sample/imgs/189551.jpg')
+    # img = dataloader.getimg('sample/orig.png')
+    # img = dataloader.getimg('sample/189551.png')
+    img = dataloader.getimg('sample/imgs/182839.jpg')
+
+
+    # m1 = np.logical_not(task.random_irregular_mask(img)[...,0].astype(bool))
+    m1 = np.logical_not(task.center_mask(img)[...,0].astype(bool))
+    print(m1.shape)
+    m1 = fix_mask(m1,16)
+    cimg = img.copy()
+    print(cimg[m1].shape)
+    print(m1.shape)
+    cimg[m1] = encryption.ArnoldCatEncryption(cimg[m1], m1, 20)
+    dimg  = cimg.copy()
+    dimg[m1] = encryption.ArnoldCatDecryption(dimg[m1], m1, 20)
+
+ 
+    # cimg = img.copy()
+    # print(img.shape)
+    # cimg = encryption.ArnoldCatEncryption(cimg, m1, 20)
+    # dimg  = cimg.copy()
+    # dimg = encryption.ArnoldCatDecryption(dimg, m1, 20)
+
+    f0 = os.path.join('sample/original.png')
+    f1 = os.path.join('sample/arnold_encrypt_m1.png')
+    f2 = os.path.join('sample/arnold_decrypt_m1.png')
+
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
+
+    m1 = fix_mask(m1,16)    
+    return
+
+# # run des on all masks
+# def test_henon_mask():
+#     img = dataloader.getimg('sample/189551.png')
+#     # img = dataloader.getimg('sample/imgs/189551.jpg')
+
+
+#     m1 = np.logical_not(task.center_mask(img)[...,0].astype(bool))
+#     m1 = fix_mask(m1,16)
+#     for i in img:
+#         for j in i:
+#             for k in j:
+#                 if(k < 0 or k > 1):
+#                     print(k)
+#     cimg = img.copy()
+#     print(img.shape)
+#     cimg = encryption.HenonEncryption(cimg, m1, [0.1,0.1])
+#     cimg = np.asarray(cimg, dtype=np.float32)
+#     print(cimg[0][0])
+#     # for i in cimg:
+#     #     for j in i:
+#     #         for k in j:
+#     #             if(k < 0 or k > 1):
+#     #                 print(k)
+#     dimg  = cimg.copy()
+#     dimg = encryption.HenonDecryption(dimg, m1, [0.1,0.1])
+#     dimg = np.asarray(dimg, dtype=np.float32)
+
+#     f0 = os.path.join('sample/original.png')
+#     f1 = os.path.join('sample/henon_encrypt_m1.png')
+#     f2 = os.path.join('sample/henon_decrypt_m1.png')
+#     # f3 = os.path.join('sample/arnold_test_m1.png')
+#     showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
+
+#     return 
+
+# run des on all masks
+def test_henon_mask():
+    # img = dataloader.getimg('sample/189551.png')
+    # img = dataloader.getimg('sample/imgs/189551.jpg')
+    img = dataloader.getimg('sample/imgs/190909.jpg')
+
+
+    m1 = np.logical_not(task.random_irregular_mask(img)[...,0].astype(bool))
+    m2 = np.logical_not(task.random_regular_mask(img)[...,0].astype(bool))
+    m3 = np.logical_not(task.center_mask(img)[...,0].astype(bool))
+    
+
+    m1 = fix_mask(m1,16)
+    m2 = fix_mask(m2,16)
+    m3 = fix_mask(m3,16)
+
+    cimg = img.copy()
+    masked_cimg = np.array([cimg[m1]], dtype=np.uint8)
+    cimg[m1] = encryption.HenonEncryption(masked_cimg, m1, [0.1,0.1])[0]
+    cimg = np.asarray(cimg, dtype=np.uint8)
+    # for i in cimg:
+    #     for j in i:
+    #         for k in j:
+    #             if(k < 0 or k > 1):
+    #                 print(k)
+    dimg  = cimg.copy()
+    masked_dimg = np.array([dimg[m1]],dtype=np.uint8)
+    dimg[m1] = encryption.HenonDecryption(masked_dimg, m1, [0.1,0.1])[0]
+    dimg = np.asarray(dimg,dtype=np.uint8)
+
+
+    f0 = os.path.join('sample/original.png')
+    f1 = os.path.join('sample/henon_encrypt_m1.png')
+    f2 = os.path.join('sample/henon_decrypt_m1.png')
+    # f3 = os.path.join('sample/arnold_test_m1.png')
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
+
+    cimg = img.copy()
+    masked_cimg = np.array([cimg[m2]])
+    cimg[m2] = encryption.HenonEncryption(masked_cimg, m2, [0.1,0.1])[0]
+    cimg = np.asarray(cimg,dtype=np.uint8)
+    dimg  = cimg.copy()
+    masked_dimg = np.array([dimg[m2]])
+    dimg[m2] = encryption.HenonDecryption(masked_dimg, m2, [0.1,0.1])[0]
+    dimg = np.asarray(dimg,dtype=np.uint8)
+
+
+    f0 = os.path.join('sample/original.png')
+    f1 = os.path.join('sample/henon_encrypt_m2.png')
+    f2 = os.path.join('sample/henon_decrypt_m2.png')
+    # f3 = os.path.join('sample/arnold_test_m1.png')
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
+
+    cimg = img.copy()
+    masked_cimg = np.array([cimg[m3]])
+    cimg[m3] = encryption.HenonEncryption(masked_cimg, m3, [0.1,0.1])[0]
+    cimg = np.asarray(cimg,dtype=np.uint8)
+    dimg  = cimg.copy()
+    masked_dimg = np.array([dimg[m3]])
+    dimg[m3] = encryption.HenonDecryption(masked_dimg, m3, [0.1,0.1])[0]
+    dimg = np.asarray(dimg,dtype=np.uint8)
+
+
+    f0 = os.path.join('sample/original.png')
+    f1 = os.path.join('sample/henon_encrypt_m3.png')
+    f2 = os.path.join('sample/henon_decrypt_m3.png')
+    # f3 = os.path.join('sample/arnold_test_m1.png')
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
+
+#     return 
+
 # run des on all masks
 def test_des_mask():
 
@@ -114,8 +255,9 @@ def test_des_mask():
 # unit test
 if __name__ == '__main__':
     print('unit test')
-
-    test_aes_mask()
+    # test_arnold_mask()
+    test_henon_mask()
+    # test_aes_mask()
     # test_des()
     # test_aes()
     # test_rsa()

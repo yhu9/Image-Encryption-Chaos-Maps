@@ -38,19 +38,19 @@ class RSAimg():
     def encrypt(self,img,mode='public'):
         h, w, d = img.shape
         byte_img = img.tobytes()
-
+        ciphertext = []
         if mode == 'private':
-            ciphertext = []
             for i in range(int(math.ceil(len(byte_img)) / self.msglen)):
                 ciphertext.append(self.private_cipher.encrypt(byte_img[int(i*self.msglen):int((i+1)*self.msglen)]))
+
+                # ciphertext.append(pow(int(byte_img[int(i*self.msglen):int((i+1)*self.msglen)], 2), self.private_key.e, self.private_key.n))
             ciphertext = b''.join(ciphertext)
 
         elif mode == 'public':
-            ciphertext = []
             for i in range(int(math.ceil(len(byte_img)) / self.msglen)):
                 ciphertext.append(self.public_cipher.encrypt(byte_img[int(i*self.msglen):int((i+1)*self.msglen)]))
             ciphertext = b''.join(ciphertext)
-            
+        
         cipher_image = np.frombuffer(ciphertext, dtype=img.dtype).reshape(h,w,d)
 
         return cipher_image
@@ -64,14 +64,13 @@ class RSAimg():
         h,w,d = cipher_img.shape
 
         cipher_text = cipher_img.tobytes()
-        
+        decrypt_msg = []
+
         if mode == 'private':
-            decrypt_msg = []
             for i in range(int(math.ceil(len(cipher_text)) / self.msglen)):
                 decrypt_msg.append(self.private_cipher.decrypt(cipher_text[int(i*self.msglen):int((i+1)*self.msglen)]))
             decrypt_msg = b''.join(decrypt_msg)
         elif mode == 'public':
-            decrypt_msg = []
             for i in range(int(math.ceil(len(cipher_text)) / self.msglen)):
                 decrypt_msg.append(self.public_cipher.decrypt(cipher_text[int(i*self.msglen):int((i+1)*self.msglen)]))
             decrypt_msg = b''.join(decrypt_msg)
@@ -190,35 +189,59 @@ def getImageMatrix_gray(imageName):
 # Arnold Cat Chaos Map based encryption
 # requires optimization
 def ArnoldCatTransform(img, num):
-    rows, cols, ch = img.shape
-    img_arnold = np.zeros([rows, cols, ch])
+    # rows, cols, ch = img.shape
+    # img_arnold = np.zeros([rows, cols, ch])
+
+    rows, cols = img.shape
+    img_arnold = np.zeros([rows, cols])
     
     for x in range(0, rows):
         for y in range(0, cols):
+            # print(x, y)
+            # print((x+y)%rows , (x+2*y)%cols)
+            # print(img_arnold[x][y],img[(x+y)%rows][(x+2*y)%cols]   )
             img_arnold[x][y] = img[(x+y)%rows][(x+2*y)%cols]  
     return img_arnold    
 
+# Arnold Cat Chaos Map based encryption
+# requires optimization
+def ArnoldCatReverseTransform(img, i):
+    # rows, cols, ch = img.shape
+    # img_arnold = np.zeros([rows, cols, ch])
+
+    rows, cols = img.shape
+    img_arnold = np.zeros([rows, cols])
+    
+    for x in range(0, rows):
+        for y in range(0, cols):
+            img_arnold[x][y] = img[(2*x-y)%rows][(y-x)%cols]  
+    return img_arnold  
+
 # encryption
-def ArnoldCatEncryption(img, key):
+def ArnoldCatEncryption(img, mask, key):
     for i in range (0,key):
+        print(i)
         img = ArnoldCatTransform(img, i)
     return img
 
 # decryption
-def ArnoldCatDecryption(img, key):
-    rows, cols, ch = img.shape
-    dimension = rows
-    decrypt_it = dimension
-    if (dimension%2==0) and 5**int(round(log(dimension/2,5))) == int(dimension/2):
-        decrypt_it = 3*dimension
-    elif 5**int(round(log(dimension,5))) == int(dimension):
-        decrypt_it = 2*dimension
-    elif (dimension%6==0) and  5**int(round(log(dimension/6,5))) == int(dimension/6):
-        decrypt_it = 2*dimension
-    else:
-        decrypt_it = int(12*dimension/7)
-    for i in range(key,decrypt_it):
-        img = ArnoldCatTransform(img, i)
+def ArnoldCatDecryption(img, mask, key):
+    # rows, cols = img.shape
+    # dimension = rows
+    # decrypt_it = dimension
+    # if (dimension%2==0) and 5**int(round(log(dimension/2,5))) == int(dimension/2):
+    #     decrypt_it = 3*dimension
+    # elif 5**int(round(log(dimension,5))) == int(dimension):
+    #     decrypt_it = 2*dimension
+    # elif (dimension%6==0) and  5**int(round(log(dimension/6,5))) == int(dimension/6):
+    #     decrypt_it = 2*dimension
+    # else:
+    #     decrypt_it = int(12*dimension/7)
+    # print (key, dimension, decrypt_it)
+    for i in range(0,key):
+        print(i)
+        img = ArnoldCatReverseTransform(img, i)
+
     return img
 
 # Helper function for get Henon Map
@@ -229,10 +252,10 @@ def dec(bitSequence):
     return decimal
 
 # create Henon Map for Henon Encryption
-def genHenonMap(dimension, key):
+def genHenonMap(dimensionX, dimensionY, key):
     x = key[0]
     y = key[1]
-    sequenceSize = dimension * dimension * 8 #Total Number of bitSequence produced
+    sequenceSize = dimensionX * dimensionY * 8 #Total Number of bitSequence produced
     bitSequence = []    #Each bitSequence contains 8 bits
     byteArray = []      #Each byteArray contains m( i.e 512 in this case) bitSequence
     TImageMatrix = []   #Each TImageMatrix contains m*n byteArray( i.e 512 byteArray in this case)
@@ -261,84 +284,150 @@ def genHenonMap(dimension, key):
                 byteArray = [decimal]
             bitSequence = []
 
-        byteArraySize = dimension*8
+        byteArraySize = dimensionY*8
         if i % byteArraySize == byteArraySize-1:
             try:
                 TImageMatrix.append(byteArray)
             except:
                 TImageMatrix = [byteArray]
             byteArray = []
+
     return TImageMatrix
 
+# # Henon Encryption
+# def HenonEncryption(imageMatrix,mask,key):
+#     color = True
+#     dimensionX, dimensionY, useless = imageMatrix.shape
+
+#     # imageMatrix, dimension, color = getImageMatrix(imageName)
+#     transformationMatrix = genHenonMap(dimensionX, dimensionY, key)
+#     resultantMatrix = []
+#     for i in range(dimensionX):
+#         row = []
+#         for j in range(dimensionY):
+#             try:
+#                 if color:
+#                     row.append(tuple([int(transformationMatrix[i][j] ^ (255 if (x == 1) else int(x*255)))/255.0 for x in imageMatrix[i][j]]))
+#                 else:
+#                     row.append(transformationMatrix[i][j] ^ imageMatrix[i][j])
+#             except:
+#                 if color:
+#                     row = [tuple([int(transformationMatrix[i][j] ^ (255 if (x == 1) else int(x*255)))/255.0 for x in imageMatrix[i][j]])]
+#                 else :
+#                     row = [int(transformationMatrix[i][j] ^ 255 if (x == 1) else int(x*256))/255.0 for x in imageMatrix[i][j]]
+#         try:    
+#             resultantMatrix.append(row)
+#         except:
+#             resultantMatrix = [row]
+#     # if color:
+#     #   im = Image.new("RGB", (dimensionX, dimensionY))
+#     # else: 
+#     #   im = Image.new("L", (dimensionX, dimensionY)) # L is for Black and white pixels
+
+#     # pix = im.load()
+#     # for x in range(dimensionX):
+#     #     for y in range(dimensionY):
+#     #         pix[x, y] = resultantMatrix[x][y]
+    
+#     return resultantMatrix
+
+
+
+# # decrytion
+# def HenonDecryption(imageMatrix,mask,key):
+#     color = True
+#     dimensionX, dimensionY, useless = imageMatrix.shape
+#     # imageMatrix, dimension, color = getImageMatrix(imageName)
+#     transformationMatrix = genHenonMap(dimensionX, dimensionY, key)
+#     # pil_im = Image.open(imageNameEnc, 'r')
+#     # imshow(np.asarray(pil_im))
+#     henonDecryptedImage = []
+#     for i in range(dimensionX):
+#         row = []
+#         for j in range(dimensionY):
+#             try:
+#                 if color:
+#                     row.append(tuple([int(transformationMatrix[i][j] ^ (255 if (x == 1) else int(x*255)))/255.0 for x in imageMatrix[i][j]]))
+#                 else:
+#                     row.append(transformationMatrix[i][j] ^ imageMatrix[i][j])
+#             except:
+#                 if color:
+#                     row = [tuple([int(transformationMatrix[i][j] ^ (255 if (x == 1) else int(x*255)))/255.0 for x in imageMatrix[i][j]])]
+#                 else :
+#                     row = [int(transformationMatrix[i][j] ^ 255 if (x == 1) else int(x*256))/256.0 for x in imageMatrix[i][j]]
+#         try:
+#             henonDecryptedImage.append(row)
+#         except:
+#             henonDecryptedImage = [row]
+#     # if color:
+#     #     im = Image.new("RGB", (dimensionX, dimensionY))
+#     # else: 
+#     #     im = Image.new("L", (dimensionX, dimensionY)) # L is for Black and white pixels
+
+#     # pix = im.load()
+#     # for x in range(dimensionX):
+#     #     for y in range(dimensionY):
+#     #         pix[x, y] = henonDecryptedImage[x][y]
+#     # im.save(imageNameEnc.split('_')[0] + "_HenonDec.png", "PNG")
+#     return henonDecryptedImage
+
+
+#incase we need to work with 0-255 int range colors
+
 # Henon Encryption
-def HenonEncryption(imageName,key):
-    imageMatrix, dimension, color = getImageMatrix(imageName)
-    transformationMatrix = genHenonMap(dimension, key)
+def HenonEncryption(imageMatrix,mask,key):
+    color = True
+    dimensionX, dimensionY, useless = imageMatrix.shape
+
+    transformationMatrix = genHenonMap(dimensionX, dimensionY, key)
     resultantMatrix = []
-    for i in range(dimension):
+    for i in range(dimensionX):
         row = []
-        for j in range(dimension):
+        for j in range(dimensionY):
             try:
                 if color:
-                    row.append(tuple([transformationMatrix[i][j] ^ x for x in imageMatrix[i][j]]))
+                    row.append(tuple([transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]]))
                 else:
                     row.append(transformationMatrix[i][j] ^ imageMatrix[i][j])
             except:
                 if color:
-                    row = [tuple([transformationMatrix[i][j] ^ x for x in imageMatrix[i][j]])]
+                    row = [tuple([transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]])]
                 else :
-                    row = [transformationMatrix[i][j] ^ x for x in imageMatrix[i][j]]
+                    row = [transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]]
         try:    
             resultantMatrix.append(row)
         except:
             resultantMatrix = [row]
-    if color:
-      im = Image.new("RGB", (dimension, dimension))
-    else: 
-      im = Image.new("L", (dimension, dimension)) # L is for Black and white pixels
-
-    pix = im.load()
-    for x in range(dimension):
-        for y in range(dimension):
-            pix[x, y] = resultantMatrix[x][y]
-    im.save(imageName.split('.')[0] + "_HenonEnc.png", "PNG")
+    
+    
+    return resultantMatrix
 
 
 
 # decrytion
-def HenonDecryption(imageNameEnc, key):
-    imageMatrix, dimensionX, dimensionY, color = getImageMatrix(imageNameEnc)
-    transformationMatrix = genHenonMap(dimension, key)
-    pil_im = Image.open(imageNameEnc, 'r')
-    imshow(np.asarray(pil_im))
+def HenonDecryption(imageMatrix,mask,key):
+    color = True
+    dimensionX, dimensionY, useless = imageMatrix.shape
+    
+    transformationMatrix = genHenonMap(dimensionX, dimensionY, key) 
     henonDecryptedImage = []
     for i in range(dimensionX):
         row = []
         for j in range(dimensionY):
             try:
                 if color:
-                    row.append(tuple([transformationMatrix[i][j] ^ x for x in imageMatrix[i][j]]))
+                    row.append(tuple([transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]]))
                 else:
                     row.append(transformationMatrix[i][j] ^ imageMatrix[i][j])
             except:
                 if color:
-                    row = [tuple([transformationMatrix[i][j] ^ x for x in imageMatrix[i][j]])]
+                    print(i, j, imageMatrix[i][j])
+                    row = [tuple([transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]])]
                 else :
-                    row = [transformationMatrix[i][j] ^ x for x in imageMatrix[i][j]]
+                    row = [transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]]
         try:
             henonDecryptedImage.append(row)
         except:
             henonDecryptedImage = [row]
-    if color:
-        im = Image.new("RGB", (dimensionX, dimensionY))
-    else: 
-        im = Image.new("L", (dimensionX, dimensionY)) # L is for Black and white pixels
-
-    pix = im.load()
-    for x in range(dimensionX):
-        for y in range(dimensionY):
-            pix[x, y] = henonDecryptedImage[x][y]
-    im.save(imageNameEnc.split('_')[0] + "_HenonDec.png", "PNG")
-
-
-
+   
+    return henonDecryptedImage
