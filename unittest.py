@@ -7,6 +7,7 @@ from Crypto.Random import get_random_bytes
 import encryption
 import dataloader
 import task
+import time
 from util import fix_mask
 
 # test des encryption/decryption
@@ -183,29 +184,39 @@ def test_henon_mask():
     img = dataloader.getimg('sample/imgs/190909.jpg')
 
 
-    m1 = np.logical_not(task.random_irregular_mask(img)[...,0].astype(bool))
-    m2 = np.logical_not(task.random_regular_mask(img)[...,0].astype(bool))
-    m3 = np.logical_not(task.center_mask(img)[...,0].astype(bool))
+    m1 = np.logical_not(task.center_mask(img)[...,0].astype(bool))
+    m2 = np.logical_not(task.random_irregular_mask(img)[...,0].astype(bool))
+    m3 = np.logical_not(task.random_regular_mask(img)[...,0].astype(bool))
     
-
+    
     m1 = fix_mask(m1,16)
     m2 = fix_mask(m2,16)
     m3 = fix_mask(m3,16)
 
     cimg = img.copy()
-    masked_cimg = np.array([cimg[m1]], dtype=np.uint8)
-    cimg[m1] = encryption.HenonEncryption(masked_cimg, m1, [0.1,0.1])[0]
-    cimg = np.asarray(cimg, dtype=np.uint8)
+    masked_cimg = np.array(cimg[m1], dtype=np.uint8)
+    
+    h,w,d = img.shape
+    key = [0.1,0.1]
+    hmap = encryption.genHenonMap(h*w,key)
+    st_time = time.time()
+    cimg[m1] = encryption.HenonEncryption(masked_cimg, hmap)
+    enc_time = time.time() - st_time
+    print(f"encrypt time: {enc_time:.2}s")
+    
+    # cimg = np.asarray(cimg, dtype=np.uint8)
     # for i in cimg:
     #     for j in i:
     #         for k in j:
     #             if(k < 0 or k > 1):
     #                 print(k)
     dimg  = cimg.copy()
-    masked_dimg = np.array([dimg[m1]],dtype=np.uint8)
-    dimg[m1] = encryption.HenonDecryption(masked_dimg, m1, [0.1,0.1])[0]
+    masked_dimg = np.array(dimg[m1],dtype=np.uint8)
+    st_time = time.time()
+    dimg[m1] = encryption.HenonDecryption(masked_dimg,hmap)
+    dec_time = time.time() - st_time
+    print(f"decrypt time: {dec_time:.2}s")
     dimg = np.asarray(dimg,dtype=np.uint8)
-
 
     f0 = os.path.join('sample/original.png')
     f1 = os.path.join('sample/henon_encrypt_m1.png')
@@ -214,13 +225,11 @@ def test_henon_mask():
     showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
 
     cimg = img.copy()
-    masked_cimg = np.array([cimg[m2]])
-    cimg[m2] = encryption.HenonEncryption(masked_cimg, m2, [0.1,0.1])[0]
-    cimg = np.asarray(cimg,dtype=np.uint8)
+    masked_cimg = np.array(cimg[m2])
+    cimg[m2] = encryption.HenonEncryption(masked_cimg, hmap)
     dimg  = cimg.copy()
-    masked_dimg = np.array([dimg[m2]])
-    dimg[m2] = encryption.HenonDecryption(masked_dimg, m2, [0.1,0.1])[0]
-    dimg = np.asarray(dimg,dtype=np.uint8)
+    masked_dimg = np.array(dimg[m2])
+    dimg[m2] = encryption.HenonDecryption(masked_dimg, hmap)
 
 
     f0 = os.path.join('sample/original.png')
@@ -230,14 +239,11 @@ def test_henon_mask():
     showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
 
     cimg = img.copy()
-    masked_cimg = np.array([cimg[m3]])
-    cimg[m3] = encryption.HenonEncryption(masked_cimg, m3, [0.1,0.1])[0]
-    cimg = np.asarray(cimg,dtype=np.uint8)
+    masked_cimg = np.array(cimg[m3])
+    cimg[m3] = encryption.HenonEncryption(masked_cimg, hmap)
     dimg  = cimg.copy()
-    masked_dimg = np.array([dimg[m3]])
-    dimg[m3] = encryption.HenonDecryption(masked_dimg, m3, [0.1,0.1])[0]
-    dimg = np.asarray(dimg,dtype=np.uint8)
-
+    masked_dimg = np.array(dimg[m3])
+    dimg[m3] = encryption.HenonDecryption(masked_dimg, hmap)
 
     f0 = os.path.join('sample/original.png')
     f1 = os.path.join('sample/henon_encrypt_m3.png')

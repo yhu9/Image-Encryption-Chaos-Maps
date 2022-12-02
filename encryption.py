@@ -252,48 +252,23 @@ def dec(bitSequence):
     return decimal
 
 # create Henon Map for Henon Encryption
-def genHenonMap(dimensionX, dimensionY, key):
-    x = key[0]
-    y = key[1]
-    sequenceSize = dimensionX * dimensionY * 8 #Total Number of bitSequence produced
-    bitSequence = []    #Each bitSequence contains 8 bits
-    byteArray = []      #Each byteArray contains m( i.e 512 in this case) bitSequence
-    TImageMatrix = []   #Each TImageMatrix contains m*n byteArray( i.e 512 byteArray in this case)
+def genHenonMap(n, key):
+    sequenceSize = n * 8 #Total Number of bitSequence produced
+    
+    # generate dynamic list for henon map
+    xN = [key[0]]
+    yN = [key[1]]
     for i in range(sequenceSize):
-        xN = y + 1 - 1.4 * x**2
-        yN = 0.3 * x
+        xN.append( yN[i] + 1 - 1.4 * xN[i]**2 )
+        yN.append( 0.3 * xN[i] )
+    xN = np.array(xN[1:])
+    yN = np.array(yN[1:])
 
-        x = xN
-        y = yN
+    bits = np.logical_not(xN <= 0.4).reshape(-1,8)
+    vals = np.squeeze(np.packbits(bits,axis=1))
 
-        if xN <= 0.4:
-            bit = 0
-        else:
-            bit = 1
-
-        try:
-            bitSequence.append(bit)
-        except:
-            bitSequence = [bit]
-
-        if i % 8 == 7:
-            decimal = dec(bitSequence)
-            try:
-                byteArray.append(decimal)
-            except:
-                byteArray = [decimal]
-            bitSequence = []
-
-        byteArraySize = dimensionY*8
-        if i % byteArraySize == byteArraySize-1:
-            try:
-                TImageMatrix.append(byteArray)
-            except:
-                TImageMatrix = [byteArray]
-            byteArray = []
-
-    return TImageMatrix
-
+    return vals
+    
 # # Henon Encryption
 # def HenonEncryption(imageMatrix,mask,key):
 #     color = True
@@ -375,59 +350,15 @@ def genHenonMap(dimensionX, dimensionY, key):
 #incase we need to work with 0-255 int range colors
 
 # Henon Encryption
-def HenonEncryption(imageMatrix,mask,key):
-    color = True
-    dimensionX, dimensionY, useless = imageMatrix.shape
+def HenonEncryption(imageMatrix,transformationMatrix):
 
-    transformationMatrix = genHenonMap(dimensionX, dimensionY, key)
-    resultantMatrix = []
-    for i in range(dimensionX):
-        row = []
-        for j in range(dimensionY):
-            try:
-                if color:
-                    row.append(tuple([transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]]))
-                else:
-                    row.append(transformationMatrix[i][j] ^ imageMatrix[i][j])
-            except:
-                if color:
-                    row = [tuple([transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]])]
-                else :
-                    row = [transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]]
-        try:    
-            resultantMatrix.append(row)
-        except:
-            resultantMatrix = [row]
-    
-    
-    return resultantMatrix
+    length = imageMatrix.shape[0]
+    m = np.stack([transformationMatrix[:length]] * 3, axis=-1)
 
-
+    return m ^ imageMatrix
 
 # decrytion
-def HenonDecryption(imageMatrix,mask,key):
-    color = True
-    dimensionX, dimensionY, useless = imageMatrix.shape
-    
-    transformationMatrix = genHenonMap(dimensionX, dimensionY, key) 
-    henonDecryptedImage = []
-    for i in range(dimensionX):
-        row = []
-        for j in range(dimensionY):
-            try:
-                if color:
-                    row.append(tuple([transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]]))
-                else:
-                    row.append(transformationMatrix[i][j] ^ imageMatrix[i][j])
-            except:
-                if color:
-                    print(i, j, imageMatrix[i][j])
-                    row = [tuple([transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]])]
-                else :
-                    row = [transformationMatrix[i][j] ^ int(x) for x in imageMatrix[i][j]]
-        try:
-            henonDecryptedImage.append(row)
-        except:
-            henonDecryptedImage = [row]
-   
-    return henonDecryptedImage
+def HenonDecryption(imageMatrix,transformationMatrix):
+    length = imageMatrix.shape[0]
+    m = np.stack([transformationMatrix[:length]] *3, axis=-1)
+    return m ^ imageMatrix
