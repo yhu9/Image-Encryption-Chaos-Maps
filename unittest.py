@@ -258,11 +258,91 @@ def test_des_mask():
 
     return 
 
+def test_logistic_mask():
+    # img = dataloader.getimg('sample/189551.png')
+    # img = dataloader.getimg('sample/imgs/189551.jpg')
+    img = dataloader.getimg('sample/imgs/190909.jpg')
+
+
+    m1 = np.logical_not(task.center_mask(img)[...,0].astype(bool))
+    m2 = np.logical_not(task.random_irregular_mask(img)[...,0].astype(bool))
+    m3 = np.logical_not(task.random_regular_mask(img)[...,0].astype(bool))
+    
+    
+    m1 = fix_mask(m1,16)
+    m2 = fix_mask(m2,16)
+    m3 = fix_mask(m3,16)
+
+    cimg = img.copy()
+
+    masked_cimg = np.array([cimg[m1]], dtype=np.uint8)
+    print(masked_cimg.shape)
+    h,w,d = img.shape
+    key = "abcdefghijklm"
+    # hmap = encryption.genHenonMap(h*w,key)
+    key_list, C1_0, C2_0, C,x, y, y_dec = encryption.getLogisticMap("abcdefghijklm")
+    st_time = time.time()
+    cimg[m1] = encryption.LogisticEncryption(masked_cimg, key_list, C1_0, C2_0, C, x, y)
+    # cimg[m1] = encryption.LogisticEncryption(masked_cimg, key)
+    enc_time = time.time() - st_time
+    print(f"encrypt time: {enc_time:.2}s")
+    
+    # cimg = np.asarray(cimg, dtype=np.uint8)
+    # for i in cimg:
+    #     for j in i:
+    #         for k in j:
+    #             if(k < 0 or k > 1):
+    #                 print(k)
+    dimg  = cimg.copy()
+    masked_dimg = np.array([dimg[m1]],dtype=np.uint8)
+    st_time = time.time()
+    dimg[m1] = encryption.LogisticDecryption(masked_dimg,key_list, C1_0, C2_0, C, x, y_dec)
+    # dimg[m1] = encryption.LogisticDecryption(masked_dimg, key)
+    dec_time = time.time() - st_time
+    print(f"decrypt time: {dec_time:.2}s")
+    dimg = np.asarray(dimg,dtype=np.uint8)
+
+    f0 = os.path.join('sample/original.png')
+    f1 = os.path.join('sample/logistic_encrypt_m1.png')
+    f2 = os.path.join('sample/logistic_decrypt_m1.png')
+    # f3 = os.path.join('sample/arnold_test_m1.png')
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
+
+    cimg = img.copy()
+    masked_cimg = np.array([cimg[m2]])
+    cimg[m2] = encryption.LogisticEncryption(masked_cimg, key_list, C1_0, C2_0, C, x, y)
+    # cimg[m2] = encryption.LogisticEncryption(masked_cimg, key)
+    dimg  = cimg.copy()
+    masked_dimg = np.array([dimg[m2]])
+    dimg[m2] = encryption.LogisticDecryption(masked_dimg, key_list, C1_0, C2_0, C, x, y_dec)
+    # dimg[m2] = encryption.LogisticDecryption(masked_dimg, key)
+
+    f0 = os.path.join('sample/original.png')
+    f1 = os.path.join('sample/logistic_encrypt_m2.png')
+    f2 = os.path.join('sample/logistic_decrypt_m2.png')
+    # f3 = os.path.join('sample/arnold_test_m1.png')
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
+
+    cimg = img.copy()
+    masked_cimg = np.array([cimg[m3]])
+    cimg[m3] = encryption.LogisticEncryption(masked_cimg, key_list, C1_0, C2_0, C, x, y)
+    # cimg[m3] = encryption.LogisticEncryption(masked_cimg, key)
+    dimg  = cimg.copy()
+    masked_dimg = np.array([dimg[m3]])
+    dimg[m3] = encryption.LogisticDecryption(masked_dimg, key_list, C1_0, C2_0, C, x, y_dec)
+    # dimg[m3] = encryption.LogisticDecryption(masked_dimg, key)
+    f0 = os.path.join('sample/original.png')
+    f1 = os.path.join('sample/logistic_encrypt_m3.png')
+    f2 = os.path.join('sample/logistic_decrypt_m3.png')
+    # f3 = os.path.join('sample/arnold_test_m1.png')
+    showimgs([img,cimg, dimg],show=True, save=True, imgnames=[f0,f1,f2])
+
 # unit test
 if __name__ == '__main__':
     print('unit test')
     # test_arnold_mask()
-    test_henon_mask()
+    # test_henon_mask()
+    test_logistic_mask()
     # test_aes_mask()
     # test_des()
     # test_aes()
